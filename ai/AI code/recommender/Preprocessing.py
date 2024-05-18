@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import Mecab
 import numpy as np
 import pandas as pd
 import os
@@ -97,33 +98,7 @@ def get_sentence_features(train, col):
     train[col + '_num_unique_words'] = train[col].apply(lambda comment: len(set(w for w in comment.split())))
     return train
 
-def main():
-    tagger = MeCab.Tagger('-r/dev/null -d/home/hoge/mydic')
-
-    puncts = [',', '.', '"', ':', ')', '(', '-', '!', '?', '|', ';', "'", '$', '&', '/', '[', ']', '>', '%', '=', '#',
-              '*', '+', '\\', '•', '~', '@', '£',
-              '·', '_', '{', '}', '©', '^', '®', '`', '<', '→', '°', '€', '™', '›', '♥', '←', '×', '§', '″', '′', 'Â',
-              '█', '½', 'à', '…', '\n', '\xa0', '\t',
-              '“', '★', '”', '–', '●', 'â', '►', '−', '¢', '²', '¬', '░', '¶', '↑', '±', '¿', '▾', '═', '¦', '║', '―',
-              '¥', '▓', '—', '‹', '─', '\u3000', '\u202f',
-              '▒', '：', '¼', '⊕', '▼', '▪', '†', '■', '’', '▀', '¨', '▄', '♫', '☆', 'é', '¯', '♦', '¤', '▲', 'è', '¸',
-              '¾', 'Ã', '⋅', '‘', '∞', '«',
-              '∙', '）', '↓', '、', '│', '（', '»', '，', '♪', '╩', '╚', '³', '・', '╦', '╣', '╔', '╗', '▬', '❤', 'ï', 'Ø',
-              '¹', '≤', '‡', '√', ]
-
-    html_tags = ['<p>', '</p>', '<table>', '</table>', '<tr>', '</tr>', '<ul>', '<ol>', '<dl>', '</ul>', '</ol>',
-                 '</dl>', '<li>', '<dd>', '<dt>', '</li>', '</dd>', '</dt>', '<h1>', '</h1>',
-                 '<br>', '<br/>', '<strong>', '</strong>', '<span>', '</span>', '<blockquote>', '</blockquote>',
-                 '<pre>', '</pre>', '<div>', '</div>', '<h2>', '</h2>', '<h3>', '</h3>', '<h4>', '</h4>', '<h5>',
-                 '</h5>',
-                 '<h6>', '</h6>', '<blck>', '<pr>', '<code>', '<th>', '</th>', '<td>', '</td>', '<em>', '</em>']
-
-    empty_expressions = ['&lt;', '&gt;', '&amp;', '&nbsp;',
-                         '&emsp;', '&ndash;', '&mdash;', '&ensp;'
-                                                         '&quot;', '&#39;']
-
-    other = ['span', 'style', 'href', 'input']
-
+def read_original_data():
     # read text_data
     content_set = []
     num = 0
@@ -139,15 +114,16 @@ def main():
 
     df = pd.DataFrame(columns=['text'])
     df.text = pd.DataFrame(content_set)
+    return df
 
-    for i in range(80):
+def Tfidf_Vectorization(df):
+    for i in range(df.shape[0]):
         df['text'].iloc[i] = preprocess(df['text'].iloc[i])
 
     df['wakati_text'] = df['text'].progress_apply(lambda x: ' '.join(tok.mecab_tokenizer(x)))
 
     df = get_sentence_features(df, 'wakati_text')
 
-    # Tfidf-Vectorization
     n_components = 20
     col_num = n_components * 2
     SEED = 1129
@@ -180,8 +156,41 @@ def main():
     X = pd.DataFrame(X, columns=['text_wd_tfidf_svd_{}'.format(i) for i in range(col_num)])
 
     df = pd.concat([df, X], axis=1)
+    return df
 
-    df.to_csv('/text_data/df.csv', index=False)
+    # df.to_csv('/text_data/df.csv', index=False)
+
+def main():
+    # tagger = MeCab.Tagger('-r/dev/null -d/home/hoge/mydic')
+
+    puncts = [',', '.', '"', ':', ')', '(', '-', '!', '?', '|', ';', "'", '$', '&', '/', '[', ']', '>', '%', '=', '#',
+              '*', '+', '\\', '•', '~', '@', '£',
+              '·', '_', '{', '}', '©', '^', '®', '`', '<', '→', '°', '€', '™', '›', '♥', '←', '×', '§', '″', '′', 'Â',
+              '█', '½', 'à', '…', '\n', '\xa0', '\t',
+              '“', '★', '”', '–', '●', 'â', '►', '−', '¢', '²', '¬', '░', '¶', '↑', '±', '¿', '▾', '═', '¦', '║', '―',
+              '¥', '▓', '—', '‹', '─', '\u3000', '\u202f',
+              '▒', '：', '¼', '⊕', '▼', '▪', '†', '■', '’', '▀', '¨', '▄', '♫', '☆', 'é', '¯', '♦', '¤', '▲', 'è', '¸',
+              '¾', 'Ã', '⋅', '‘', '∞', '«',
+              '∙', '）', '↓', '、', '│', '（', '»', '，', '♪', '╩', '╚', '³', '・', '╦', '╣', '╔', '╗', '▬', '❤', 'ï', 'Ø',
+              '¹', '≤', '‡', '√', ]
+
+    html_tags = ['<p>', '</p>', '<table>', '</table>', '<tr>', '</tr>', '<ul>', '<ol>', '<dl>', '</ul>', '</ol>',
+                 '</dl>', '<li>', '<dd>', '<dt>', '</li>', '</dd>', '</dt>', '<h1>', '</h1>',
+                 '<br>', '<br/>', '<strong>', '</strong>', '<span>', '</span>', '<blockquote>', '</blockquote>',
+                 '<pre>', '</pre>', '<div>', '</div>', '<h2>', '</h2>', '<h3>', '</h3>', '<h4>', '</h4>', '<h5>',
+                 '</h5>',
+                 '<h6>', '</h6>', '<blck>', '<pr>', '<code>', '<th>', '</th>', '<td>', '</td>', '<em>', '</em>']
+
+    empty_expressions = ['&lt;', '&gt;', '&amp;', '&nbsp;',
+                         '&emsp;', '&ndash;', '&mdash;', '&ensp;'
+                                                         '&quot;', '&#39;']
+
+    other = ['span', 'style', 'href', 'input']
+
+    df = read_original_data()
+    Tfidf_Vectorization(df)
+    print (df.head())
+
 
 if __name__ == "__main__":
     main()
